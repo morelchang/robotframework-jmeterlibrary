@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #Robot Framework JMeter Library
 #
 #This program is free software: you can redistribute it and/or modify
@@ -248,7 +249,7 @@ class JMeterRunner(object):
         runnerPrint = "Starting JMeter with following parameters:\n"
         runnerPrint += " - JMeter path: " + self.jmeter + "\n"
         runnerPrint += " - Test plan path: " + self.jmx + "\n"
-        runnerPrint += " - Log file path: " + self.log + "\n"
+        runnerPrint += " - Log file path: <a href=\"/" + os.path.basename(self.log) + "\">" + self.log + "</a>\n"
         runnerPrint += " - Other parameters: " + self.paramsStr + " ."
         return runnerPrint
 
@@ -1243,7 +1244,7 @@ CREATE TABLE Assert(assertId INTEGER PRIMARY KEY autoincrement, sampleId INTEGER
             if filePath!=None:
                 try:
                     dbLogFile = open(filePath, 'w')
-                    dbLogFile.write(sqlLog)
+                    dbLogFile.write(sqlLog.encode('utf-8'))
                     dbLogFile.close()
                 except IOError:
                     print "ERROR while saving data to a log file"
@@ -1280,7 +1281,7 @@ class LogConverterHtml(object):
     def saveDataToHtml(self,data):
         try:
             htmlHndl = open(self.htmlLogPath, "w")
-            htmlHndl.write(data)
+            htmlHndl.write(data.encode('utf-8'))
             htmlHndl.close()
         except IOError:
             print "ERROR, problems while writing " + str(self.htmlLogPath)
