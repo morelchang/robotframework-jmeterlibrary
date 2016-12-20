@@ -285,6 +285,7 @@ class JMeterLibException(Exception):
     def __str__(self):
          return repr(self.msg)
 
+import pprint
 class LogAnalysisInitiator(object):
     def __init__(self, filePath, createSqlReport=False, createHtmlReport=False, disableReports=None):
         debugNeeded = False
@@ -351,6 +352,9 @@ class LogAnalysisInitiator(object):
         retStruct.append(self.aggrSummary.convertToDictionary())
         for ags in self.aggrSamples:
             retStruct.append(ags.convertToDictionary())
+        print "Conent of retStructure"
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(retStruct)
         return retStruct
 
 class LogAnalyser(object):
@@ -1451,7 +1455,9 @@ class LogConverterHtml(object):
             if self.printDetails:
                 print "     Writing sample number " + str(sampleNumber) + " into " + self.htmlLogPath
             samplesHtml += "<tr"
-            if whichRow == 1:
+            if s.getStatus() == 'false':
+                samplesHtml += " class=\"error\" "
+            elif whichRow == 1:
                 samplesHtml += " class=\"even\" "
             samplesHtml += "><td>"
             newTime = datetime.datetime.fromtimestamp(int(s.getStartTime()) / 1e3)
@@ -1520,6 +1526,11 @@ class LogConverterHtml(object):
 {
 	color:#000000;
 	background-color:#D1EEF6;
+}
+#samples tr.error td
+{
+	color:#ff0000;
+	background-color:#FFCCCC;
 }
 #assertions
 {
