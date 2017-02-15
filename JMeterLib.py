@@ -69,6 +69,7 @@ import datetime
 import math
 import sqlite3
 import xml.dom.minidom
+import fileinput
 from xml.dom.minidom import getDOMImplementation
 from time import gmtime, strftime
 
@@ -249,7 +250,7 @@ class JMeterRunner(object):
         runnerPrint = "Starting JMeter with following parameters:\n"
         runnerPrint += " - JMeter path: " + self.jmeter + "\n"
         runnerPrint += " - Test plan path: " + self.jmx + "\n"
-        runnerPrint += " - Log file path: <a href=\"/" + os.path.basename(self.log) + "\">" + self.log + "</a>\n"
+        runnerPrint += " - Log file path: " + self.log + "\n"
         runnerPrint += " - Other parameters: " + self.paramsStr + " ."
         return runnerPrint
 
@@ -530,16 +531,42 @@ class CsvLogAnalyser(LogAnalyser):
             validated = False
         return validated
 
+
 class XmlLogAnalyser(LogAnalyser):
+    def isInvalidXmlEntity(self, c):
+        v = int(re.sub(r'^&#x([0-9a-f]{1,2});', r"\1", c, flags=re.IGNORECASE), 16)
+        # ref: https://gist.github.com/lawlesst/4110923
+        illegal_unichrs = [ (0x0, 0x8), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
+                        (0xD800, 0xDFFF), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF),
+                        (0x1FFFE, 0x1FFFF), (0x2FFFE, 0x2FFFF), (0x3FFFE, 0x3FFFF),
+                        (0x4FFFE, 0x4FFFF), (0x5FFFE, 0x5FFFF), (0x6FFFE, 0x6FFFF),
+                        (0x7FFFE, 0x7FFFF), (0x8FFFE, 0x8FFFF), (0x9FFFE, 0x9FFFF),
+                        (0xAFFFE, 0xAFFFF), (0xBFFFE, 0xBFFFF), (0xCFFFE, 0xCFFFF),
+                        (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
+                        (0x10FFFE, 0x10FFFF) ]
+
+        for t in illegal_unichrs:
+            for i in range(t[0], t[1] + 1):
+                if v == i:
+                    return True
+        return False
+
     def getSamples(self):
         print "Extracting samples and assertions from " + self.filePath
         self.samples = []
         try:
+            # replace invalid char '&#x0;' in xml file or parse fails
+            for line in fileinput.input(self.filePath, inplace=True):
+                entities = re.findall(r'&#x[0-9a-f]{1,2};', line, flags=re.IGNORECASE)
+                for e in entities:
+                    if self.isInvalidXmlEntity(e):
+                        line = line.replace(e, '[INVALID_ENTITY]')
+                print line,
             xmlLog = xml.dom.minidom.parse(self.filePath)
         except IOError:
             print "ERROR, problems while reading " + str(self.filePath)
-        except xml.parsers.expat.ExpatError:
-            print "ERROR, problems while parsing xml"
+        except xml.parsers.expat.ExpatError as e:
+            print "ERROR, problems while parsing xml", e
         else:
             testResultNodes = xmlLog.getElementsByTagName("testResults")
             if len(testResultNodes) > 0:
